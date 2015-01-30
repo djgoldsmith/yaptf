@@ -10,6 +10,7 @@ import controller
 
 GNDSTR = "~~^~~"
 
+#47 Chars wide
 BGSTR = ["  >^<                 /\                      ",
          "                     /# \            \./      ",
          "                    /### \    /\              ",
@@ -18,8 +19,8 @@ BGSTR = ["  >^<                 /\                      ",
          "   /# \          / /  /      /# /#\           ",
          "  /  ##\  /\/// //  /\  /    _/  /#\          ",
          " /###   \#  //  /  /  \     / /    #\/\   /\  ",
-         "/ //###  \# \/    / ## \   / /   _  /  \ /# \ ",
-         "`--`~~--`-`-== `-`= == ~~ -=`=-`````~- == ==` " ]
+         "/ //###  \# \/    / ## \   / /   _  /  \ /# \_",
+         "`--`~~--`-`-== `-`= == ~~ -=`=-`````~- == ==`=" ]
 
 
 SPASH = [" __    __       ___      ___   ___   ___   .______            ",
@@ -40,12 +41,12 @@ SPASH = [" __    __       ___      ___   ___   ___   .______            ",
 
 
 
-HELOA = [" L                             ",
-         "LOL    ROFL:ROFL:LOL:ROFL:ROFL ",
-         " L\\          ____I_____       ",
-         "    ==========    |   |[\      ",
-         "              \___|0==___)     ",
-         "              ___I__I__/       ",
+HELOA = [u" L                             ",
+         u"LOL    ROFL:ROFL:LOL:ROFL:ROFL ",
+         u" L\\          ____I_____       ",
+         u"    ==========    |   |[\      ",
+         u"              \___|0==___)     ",
+         u"              ___I__I__/       ",
          ]
 
 HELOB = ["L L                           ",
@@ -86,6 +87,7 @@ class theview(object):
         #Init Colors
         curses.start_color()
         curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        curses.init_pair(2, curses.COLOR_BLUE, curses.COLOR_BLACK)
 
         pygame.mixer.init()
 
@@ -94,6 +96,12 @@ class theview(object):
         self.helopos = None
         self.screen = screen
         self.xpos = 0
+
+        #For ROFLcopter animation
+        self.backidx = len(BGSTR[0])
+        self.gidx = 10
+        self.heloidx = 0
+        self.heloframe = 0
 
         self.splashscreen()
 
@@ -533,34 +541,83 @@ class theview(object):
         #Draw some ground
         #A pad for the main data
 
-        gidx = 10 # Grab from a global
 
-        thepad = curses.newpad(10,maxsize[1]+40) #Add 20 at each end
-        thepad.refresh(0,20,12,0,25,79) #Px, Py, #(winx start) #(win y start),  XY End Start - 20 from start)
-        while True:
+        gidx = self.gidx # Grab from a global
+
+        backidx = self.backidx
+        #How many times to repeat the background
+        backrepeats = (maxsize[1] / len(BGSTR[0])) + 3
+        heloidx = self.heloidx
+        heloframe = self.heloframe
+
+        thepad = curses.newpad(12,maxsize[1]+20+len(BGSTR[0])) #Add 20 at each end
+        #thepad.refresh(0,20,12,0,25,79) #Px, Py, #(winx start) #(win y start),  XY End Start - 20 from start)
+        #while True:
             
             #thepad.addstr(0,gidx,"{0}{1}{0}".format("-"*20,maxsize))
-            #thepad.addstr(9,gidx,"{0}{1}{2}{1}{0}".format("+","-"*19,"="*40))
+        #thepad.addstr(9,gidx,"{0}{1}{2}{1}{0}".format("+","-"*19,"="*40))
 
-            #Do the Ground effect
-            thepad.addstr(9,gidx,"{0}".format("--^--"*18)) #80 / 5 + 10
+        #Do the Ground effect
+        thepad.clear()
+        thepad.addstr(11,gidx,"{0}".format("--^--"*18),curses.color_pair(2)) #80 / 5 + 10
 
-        #thewin = curses.newwin(2, maxsize[1])
-        #thewin.addstr(1,0,"{0}{1}{0}".format("-"*20,"="*20))
-        #thewin.refresh()
+        #Now the background
+        backrow = 0
+        for line in BGSTR:
+            thepad.addstr(backrow,
+                          backidx,
+                          line*backrepeats)
+            backrow += 1
+        #Debugging info
+
+        #thepad.addstr(10,20,"Back Index {0}".format(backidx))
+
+        #Finally the Helo
+        if heloframe % 3 == 0:
+            thesprite = HELOA
+        elif heloframe % 2 == 0:
+            thesprite = HELOB
+        else:
+            thesprite = HELOC
+
+        heloframe += 1
+        if heloframe > 3:
+            heloframe = 0
+
+        idx = 2
+        for line in thesprite:
+            thepad.addstr(idx,heloidx, line, curses.color_pair(1))
+            idx +=1
 
 
-            thepad.refresh(0,20,12,0,25,79) #Px, Py, #(winx start) #(win y start),  XY End Start - 20 from start)
-            #thepad.refresh(0,0,12,0,25,79) #Px, Py, #(winx start) #(win y start),  XY End
-        
-            val =thepad.getch()
-            if val == ord('q'):
-                sys.exit(0)
 
-            gidx -= 1            
-            if gidx < 0:
-                gidx = 10
+        #REfresh the pad
+        thepad.refresh(0,20,12,0,25,79) #Px, Py, #(winx start) #(win y start),  XY End Start - 20 from start)
+        #thepad.refresh(0,0,12,0,25,79) #Px, Py, #(winx start) #(win y start),  XY End
 
+        #val =thepad.getch()
+        #if val == ord('q'):
+        #    sys.exit(0)
+
+        gidx -= 1            
+        if gidx < 0:
+            gidx = 10
+            backidx -= 1
+
+        #Helo
+        if gidx % 2 == 0:
+            heloidx += 1
+        if heloidx > maxsize[1]:
+            heloidx = 0
+
+        #Background
+        if backidx == 0:
+            backidx = len(BGSTR[0])
+
+        self.backidx = backidx
+        self.gidx = gidx
+        self.heloidx = heloidx
+        self.heloframe = heloframe
         #thewin = curses.newwin(10,20)
         #thewin.addstr(0,5,"=-"*10)
 
